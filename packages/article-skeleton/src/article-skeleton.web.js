@@ -108,13 +108,6 @@ class ArticleSkeleton extends Component {
                       })}
                     </aside>
                   </BodyContainer>
-                  <Ad contextUrl={url} section={section} slotName="pixel" />
-                  <Ad
-                    contextUrl={url}
-                    section={section}
-                    slotName="pixelteads"
-                  />
-                  <Ad contextUrl={url} section={section} slotName="pixelskin" />
                 </MainContainer>
               </Fragment>
             )}
