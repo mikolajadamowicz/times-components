@@ -9,7 +9,9 @@ export const makeAdInitMocks = (withHeaderBidding = false) => {
   }));
   const pubAds = {
     addEventListener: jest.fn(),
+    collapseEmptyDivs: jest.fn(),
     disableInitialLoad: jest.fn(),
+    enableAsyncRendering: jest.fn(),
     enableSingleRequest: jest.fn(),
     refresh: jest.fn(),
     setTargeting: jest.fn()
