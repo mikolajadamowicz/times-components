@@ -213,7 +213,6 @@ const adInit = args => {
     },
 
     handleError(err) {
-      this.gpt.destroySlots();
       eventCallback("error", err.stack);
       eventCallback("renderFailed");
       return Promise.reject(err);

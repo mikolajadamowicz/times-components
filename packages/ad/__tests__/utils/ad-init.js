@@ -95,16 +95,4 @@ export default () => {
 
     expect(init.gpt.destroySlots).toHaveBeenCalledTimes(1);
   });
-
-  it("handleError", () => {
-    const init = adInit(initOptions);
-
-    jest.spyOn(init.gpt, "destroySlots").mockImplementation();
-
-    init.handleError(new Error("Test"));
-
-    expect(init.gpt.destroySlots).toHaveBeenCalledTimes(1);
-    expect(initOptions.eventCallback).toHaveBeenCalledTimes(2);
-    expect(initOptions.eventCallback).toHaveBeenCalledWith("renderFailed");
-  });
 };
