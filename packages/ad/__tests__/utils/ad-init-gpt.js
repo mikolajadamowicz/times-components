@@ -56,39 +56,4 @@ export default () => {
     init.init();
     mock.processGoogletagCommandQueue();
   });
-
-  it("displays all ads for web", () => {
-    const init = adInit(initOptions);
-
-    init.gpt.displayAds();
-
-    expect(mock.pubAds.refresh).toHaveBeenCalled();
-  });
-
-  it("destroys all slots", () => {
-    const init = adInit(initOptions);
-
-    init.gpt.destroySlots();
-
-    expect(mock.googletag.destroySlots).toHaveBeenCalled();
-  });
-
-  it("destroys all slots only if they exist", () => {
-    const init = adInit(initOptions);
-
-    delete mock.googletag.destroySlots;
-
-    expect(init.gpt.destroySlots()).toEqual(false);
-  });
-
-  it("throws if defineSlot returns null", () => {
-    const init = adInit(initOptions);
-    mock.googletag.defineSlot.mockImplementation(() => null);
-    init.init();
-    expect(() => mock.processGoogletagCommandQueue()).toThrowError(
-      new Error(
-        "Ad slot mock-code /mockNetwork/mockAdUnit/mockSection could not be defined, probably it was already defined"
-      )
-    );
-  });
 };

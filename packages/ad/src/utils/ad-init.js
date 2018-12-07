@@ -4,45 +4,22 @@
 const adInit = args => {
   const { el, data, platform, eventCallback, window } = args;
   const { document, setTimeout, Promise } = window;
-  const enablePrebidding = platform === "web";
-  const hasBidInitialiser =
+  const isWeb = platform === "web";
+  const withHeaderBidding =
     window.nuk && window.nuk.ads && window.nuk.ads.loaded;
   const adsDisabled =
     window.nuk && window.nuk.ads && window.nuk.ads.adsDisabled;
-  const withoutHeaderBidding = enablePrebidding && !hasBidInitialiser;
+  const withoutHeaderBidding = isWeb && !withHeaderBidding;
   const scriptsInserted = {};
   let initCalled = false;
 
   return {
-    destroySlots() {
-      this.gpt.destroySlots();
-    },
-
     gpt: {
-      destroySlots() {
-        if (window.googletag.destroySlots) {
-          window.googletag.destroySlots();
-          return true;
-        }
-
-        return false;
-      },
-
-      displayAds() {
-        window.googletag.pubads().refresh();
-      },
-
-      doSlotAdSetup() {
-        const {
-          config: slotConfig,
-          networkId,
-          adUnit,
-          section,
-          slotTargeting
-        } = data;
+      defineAdSlot(slotConfig) {
         return new Promise(resolve => {
           try {
             this.scheduleAction(() => {
+              const { networkId, adUnit, section, slotTargeting } = data;
               const adUnitPath = `/${networkId}/${adUnit}/${section}`;
               const { slotName, sizes, mappings } = slotConfig;
               const slot = window.googletag.defineSlot(
@@ -51,16 +28,8 @@ const adInit = args => {
                 slotName
               );
 
-              if (!slot) {
-                throw new Error(
-                  `Ad slot ${slotName} ${adUnitPath} could not be defined, probably it was already defined`
-                );
-              }
-
-              this.setElement(slotName);
               this.setSlotTargeting(slot, slotName, mappings, slotTargeting);
               window.googletag.display(slotName);
-              window.googletag.pubads().refresh();
               const msg = `[Google] INFO: set slot targeting - ${slotName}`;
               eventCallback("warn", msg);
               resolve(msg);
@@ -70,6 +39,18 @@ const adInit = args => {
             resolve(err);
           }
         });
+      },
+
+      doSlotAdSetup() {
+        if (isWeb) {
+          const { allSlotConfigs } = data;
+          return Promise.all(
+            allSlotConfigs.map(slotConfig => this.defineAdSlot(slotConfig))
+          );
+        }
+
+        const { config } = data
+        return this.defineAdSlot(config);
       },
 
       enableService() {
@@ -87,7 +68,7 @@ const adInit = args => {
         return this.enableService().then(() => {
           setTimeout(() => {
             this.scheduleAction(() => {
-              if (enablePrebidding) {
+              if (isWeb) {
                 try {
                   window.pbjs.setTargetingForGPTAsync();
                   const { prebidConfig } = data;
@@ -101,7 +82,7 @@ const adInit = args => {
                   eventCallback("error", err.stack);
                 }
               }
-              this.displayAds();
+              window.googletag.pubads().refresh();
               const msg = "[Google] INFO: displayed ads";
               eventCallback("warn", msg);
             });
@@ -129,18 +110,6 @@ const adInit = args => {
             }
           });
         });
-      },
-
-      setElement(slotName) {
-        /* eslint-disable no-param-reassign */
-        el.id = `wrapper-${slotName}`;
-        el.innerHTML = `<div id="${slotName}"></div>`;
-        el.style.display = "flex";
-        el.style.alignItems = "center";
-        el.style.justifyContent = "center";
-        el.style.margin = "0 auto";
-        el.style.height = "100%";
-        /* eslint-enable no-param-reassign */
       },
 
       setSlotTargeting(slot, slotName, mappings, slotTargeting) {
@@ -208,7 +177,7 @@ const adInit = args => {
           breakpoint,
           refresh: "true"
         });
-        this.gpt.scheduleAction(() => this.gpt.displayAds());
+        this.gpt.scheduleAction(() => window.googletag.pubads().refresh());
       }
     },
 
@@ -220,7 +189,7 @@ const adInit = args => {
 
     init() {
       if (initCalled) {
-        return this.handleError(new Error("init() has already been called"));
+        return Promise.reject(new Error("init() has already been called"));
       }
       initCalled = true;
 
@@ -229,43 +198,43 @@ const adInit = args => {
         return this.handleError(new Error("ads disabled"));
       }
 
+      this.initElement();
+
       return this.initSetup()
-        .then(() => {
-          if (window.bidded) {
-            return Promise.reject(
-              new Error("requestBidsAsync() has already been called")
-            );
-          }
-          window.bidded = true;
-          const { networkId, adUnit, prebidConfig, section, slots } = data;
-          return this.prebid.requestBidsAsync(
-            prebidConfig,
-            slots,
-            networkId,
-            adUnit,
-            section
-          );
-        })
-        .then(() => this.gpt.gptInitialised())
         .then(() => eventCallback("renderComplete"))
         .catch(err => this.handleError(err));
     },
 
-    initPageAsync() {
-      const { prebidConfig } = data;
-      const parallelActions = [
-        this.gpt.setupAsync(this.utils),
-        this.gpt.doSlotAdSetup()
-      ];
+    initElement() {
+      const { config: slotConfig } = data;
+      const { slotName } = slotConfig;
+      /* eslint-disable no-param-reassign */
+      el.id = `${slotName}`;
+      el.style.display = "flex";
+      el.style.alignItems = "center";
+      el.style.justifyContent = "center";
+      el.style.margin = "0 auto";
+      el.style.height = "100%";
+      /* eslint-enable no-param-reassign */
+    },
 
-      if (enablePrebidding && window.matchMedia) {
+    initPageAsync() {
+      if (isWeb && window.matchMedia) {
         Object.keys(this.utils.breakpoints).forEach(b => {
           window
             .matchMedia(this.utils.breakpoints[b])
             .addListener(this.handleBreakpointChange.bind(this, b));
         });
       }
-      if (!hasBidInitialiser) {
+      if (withHeaderBidding) {
+        return Promise.all([window.nuk.ads.loaded, this.gpt.doSlotAdSetup()]);
+      }
+
+      const parallelActions = [
+        this.gpt.setupAsync(this.utils),
+        this.gpt.doSlotAdSetup()
+      ];
+      if (!withHeaderBidding) {
         this.grapeshot.setupAsync(this.gpt, this.utils);
         parallelActions.push(
           this.utils.loadScript(
@@ -274,6 +243,7 @@ const adInit = args => {
         );
       }
       if (withoutHeaderBidding) {
+        const { prebidConfig } = data;
         parallelActions.push(this.prebid.setupAsync(prebidConfig, this.utils));
       }
 
@@ -282,14 +252,23 @@ const adInit = args => {
 
     initSetup() {
       try {
-        if (hasBidInitialiser) {
-          return Promise.all([window.nuk.ads.loaded, this.gpt.doSlotAdSetup()]);
+        if (window.initCalled) {
+          return Promise.resolve("initSetup() has already been called");
         }
-        if (!window.initCalled) {
-          window.initCalled = true;
-          return this.initPageAsync();
-        }
-        return this.gpt.doSlotAdSetup();
+        window.initCalled = true;
+
+        return this.initPageAsync()
+          .then(() => {
+            const { networkId, adUnit, prebidConfig, section, slots } = data;
+            return this.prebid.requestBidsAsync(
+              prebidConfig,
+              slots,
+              networkId,
+              adUnit,
+              section
+            );
+          })
+          .then(() => this.gpt.gptInitialised());
       } catch (err) {
         return this.handleError(err);
       }
@@ -319,7 +298,7 @@ const adInit = args => {
       },
 
       requestBidsAsync(prebidConfig, slots, networkId, adUnit, section) {
-        if (!enablePrebidding) {
+        if (!isWeb) {
           return Promise.resolve("no prebid on native platform");
         }
 

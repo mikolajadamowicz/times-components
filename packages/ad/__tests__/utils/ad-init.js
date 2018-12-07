@@ -1,3 +1,4 @@
+import merge from "lodash.merge";
 import adInitOriginal from "../../src/utils/ad-init";
 import { makeAdInitMocks, adInit } from "../../fixtures/ad-init-mocks";
 import { expectFunctionToBeSelfContained } from "../../fixtures/check-self-contained-function";
@@ -60,7 +61,7 @@ export default () => {
       breakpoint: "huge",
       refresh: "true"
     });
-    expect(init1.gpt.displayAds).toHaveBeenCalledTimes(1);
+    expect(mock.pubAds.refresh).toHaveBeenCalledTimes(1);
   });
 
   it("do not refresh the ads if the query doesn't match", () => {
@@ -74,10 +75,10 @@ export default () => {
     init1.init();
     init1.handleBreakpointChange("huge", { matches: false });
 
-    expect(init1.gpt.displayAds).toHaveBeenCalledTimes(0);
+    expect(mock.pubAds.refresh).toHaveBeenCalledTimes(0);
   });
 
-  it("throws if the init hook is called twice", () => {
+  it("rejects if the init hook is called twice", () => {
     const init = adInit(initOptions);
     init.init();
     return init.init().catch(err => {
@@ -86,13 +87,20 @@ export default () => {
     });
   });
 
-  it("destroys all slots", () => {
+  it("reject if ads are disabled", () => {
+    const init = adInit(merge(initOptions, { data: { disableAds: true } }));
+    return init.init().catch(err => {
+      const expectedError = new Error("ads disabled");
+      expect(err).toEqual(expectedError);
+    });
+  });
+
+  it("sets element only once", () => {
     const init = adInit(initOptions);
-
-    jest.spyOn(init.gpt, "destroySlots").mockImplementation();
-
-    init.destroySlots();
-
-    expect(init.gpt.destroySlots).toHaveBeenCalledTimes(1);
+    jest.spyOn(init, "initElement");
+    init.init();
+    expect(init.initElement).toHaveBeenCalledTimes(1);
+    init.init();
+    expect(init.initElement).toHaveBeenCalledTimes(1);
   });
 };

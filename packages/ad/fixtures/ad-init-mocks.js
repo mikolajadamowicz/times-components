@@ -93,6 +93,7 @@ export const makeAdInitMocks = (withHeaderBidding = false) => {
       adUnit: "mockAdUnit",
       config: slotConfig,
       debug: true,
+      disableAds: false,
       networkId: "mockNetwork",
       pageTargeting: {
         pageOptionName: "pageOptionValue"
