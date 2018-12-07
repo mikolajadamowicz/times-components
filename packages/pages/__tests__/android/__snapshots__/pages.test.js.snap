@@ -5,6 +5,7 @@ Object {
   "adUnit": "thetimes.mob.android",
   "bidderSlots": Array [],
   "biddersConfig": Object {},
+  "globalSlots": Array [],
   "networkId": "dummy-ad-network-id",
   "pageTargeting": Object {
     "Shared": "0",

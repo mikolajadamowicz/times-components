@@ -41,6 +41,10 @@ const adInit = args => {
         });
       },
 
+      displayAds() {
+        window.googletag.pubads().refresh();
+      },
+
       doSlotAdSetup() {
         if (isWeb) {
           const { allSlotConfigs } = data;
@@ -49,7 +53,7 @@ const adInit = args => {
           );
         }
 
-        const { config } = data
+        const { config } = data;
         return this.defineAdSlot(config);
       },
 
@@ -102,7 +106,11 @@ const adInit = args => {
               Object.keys(keyValuePairs).forEach(key => {
                 pubads.setTargeting(key, keyValuePairs[key]);
               });
-              eventCallback("warn", keyValuePairs);
+              pubads.enableAsyncRendering();
+              pubads.disableInitialLoad();
+              pubads.collapseEmptyDivs(true, true);
+              eventCallback("warn", "[Google] INFO: set page target");
+              eventCallback("log", keyValuePairs);
               resolve(keyValuePairs);
             } catch (err) {
               eventCallback("error", err.stack);
@@ -177,12 +185,13 @@ const adInit = args => {
           breakpoint,
           refresh: "true"
         });
-        this.gpt.scheduleAction(() => window.googletag.pubads().refresh());
+        this.gpt.scheduleAction(() => this.gpt.displayAds());
       }
     },
 
     handleError(err) {
       eventCallback("error", err.stack);
+      eventCallback("error", "renderFailed");
       eventCallback("renderFailed");
       return Promise.reject(err);
     },
@@ -201,21 +210,26 @@ const adInit = args => {
       this.initElement();
 
       return this.initSetup()
-        .then(() => eventCallback("renderComplete"))
+        .then(() => {
+          eventCallback("warn", "renderComplete");
+          eventCallback("renderComplete");
+        })
         .catch(err => this.handleError(err));
     },
 
     initElement() {
       const { config: slotConfig } = data;
       const { slotName } = slotConfig;
-      /* eslint-disable no-param-reassign */
-      el.id = `${slotName}`;
-      el.style.display = "flex";
-      el.style.alignItems = "center";
-      el.style.justifyContent = "center";
-      el.style.margin = "0 auto";
-      el.style.height = "100%";
-      /* eslint-enable no-param-reassign */
+      if (el) {
+        /* eslint-disable no-param-reassign */
+        el.id = `${slotName}`;
+        el.style.display = "flex";
+        el.style.alignItems = "center";
+        el.style.justifyContent = "center";
+        el.style.margin = "0 auto";
+        el.style.height = "100%";
+        /* eslint-enable no-param-reassign */
+      }
     },
 
     initPageAsync() {
@@ -311,7 +325,8 @@ const adInit = args => {
               const { init } = prebidConfig;
               init.debug = debug;
               window.pbjs.setConfig(init);
-              eventCallback("warn", init);
+              eventCallback("warn", "[Prebid] INFO: initialised");
+              eventCallback("log", init);
               resolve(init);
             } catch (err) {
               eventCallback("error", err.stack);
@@ -347,11 +362,13 @@ const adInit = args => {
               if (slots.length < 1) {
                 throw new Error("no ad slots are defined");
               }
-              eventCallback("warn", slots);
+              eventCallback("warn", "[Prebid] INFO: requesting bids");
+              eventCallback("log", slots);
               this.setAdUnits(slots);
               window.pbjs.requestBids({
                 bidsBackHandler(bids) {
-                  eventCallback("warn", bids);
+                  eventCallback("warn", "[Prebid] INFO: bid response");
+                  eventCallback("log", bids);
                   resolve(bids);
                 }
               });
@@ -379,13 +396,15 @@ const adInit = args => {
             if (amazonSlots.length < 1) {
               throw new Error("no amazon ad slots are defined");
             }
-            eventCallback("warn", amazonSlots);
+            eventCallback("warn", "[Amazon] INFO: fetching bids");
+            eventCallback("log", amazonSlots);
             window.apstag.fetchBids(
               {
                 slots: amazonSlots
               },
               aBids => {
-                eventCallback("warn", aBids);
+                eventCallback("warn", "[Amazon] INFO: bids response");
+                eventCallback("log", aBids);
                 resolve(aBids);
               }
             );
@@ -429,7 +448,8 @@ const adInit = args => {
               pubID: amazonAccountID
             };
             window.apstag.init(apstagConfig);
-            eventCallback("warn", apstagConfig);
+            eventCallback("warn", "[Amazon] INFO: initialised");
+            eventCallback("log", apstagConfig);
             resolve(apstagConfig);
           } catch (err) {
             eventCallback("error", err.stack);

@@ -91,6 +91,10 @@ export const makeAdInitMocks = (withHeaderBidding = false) => {
   const initOptions = {
     data: {
       adUnit: "mockAdUnit",
+      allSlotConfigs: [
+        Object.assign({}, slotConfig),
+        Object.assign({}, slotConfig)
+      ],
       config: slotConfig,
       debug: true,
       disableAds: false,

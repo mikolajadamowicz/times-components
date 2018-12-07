@@ -56,7 +56,7 @@
     "packages:publish": "lerna publish --conventional-commits --yes --concurrency=1 --exact",
     "packages:publish-dry-run": "yarn packages:publish --no-git-tag-version --no-push",
     "clean-snaps": "rm -rf dextrose/snappy/*.png",
-    "commit": "git add -p && npx git-cz",
+    "commit": "git-cz",
     "prepublishOnly": "lerna run prepublishOnly",
     "test:e2e": "yarn bundle && lerna run test:integration --stream",
     "test:e2e:debug": "yarn bundle && lerna run test:integration:debug --stream"

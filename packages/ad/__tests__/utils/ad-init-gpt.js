@@ -50,6 +50,14 @@ export default () => {
     expect(mock.googletag.display).toHaveBeenCalledWith("mock-code");
   });
 
+  it("displays all ads for web", () => {
+    const init = adInit(initOptions);
+
+    init.gpt.displayAds();
+
+    expect(mock.pubAds.refresh).toHaveBeenCalled();
+  });
+
   it("does not error with a null slot targeting value", () => {
     const init = adInit(merge(initOptions, { data: { slotTargeting: null } }));
 

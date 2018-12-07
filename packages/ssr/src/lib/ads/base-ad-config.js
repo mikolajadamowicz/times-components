@@ -25,6 +25,7 @@ module.exports = {
       timeout: 3000
     },
     bidderSlots: ["header", "inline-ad"],
+    globalSlots: ["ad-pixel", "ad-pixelskin", "ad-pixelteads"],
     networkId: "25436805"
   },
 
@@ -55,6 +56,7 @@ module.exports = {
     bidderSlots: ["header", "inline-ad"],
     debug: true,
     disabled: false,
+    globalSlots: ["ad-pixel", "ad-pixelskin", "ad-pixelteads"],
     networkId: "",
     pageTargeting: {},
     slotTargeting: {}

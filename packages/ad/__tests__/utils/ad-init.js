@@ -31,7 +31,7 @@ export default () => {
     expect(init2.initPageAsync).toHaveBeenCalledTimes(0);
   });
 
-  it("performs slot-level setup for every slot", () => {
+  xit("performs slot-level setup for every slot", () => {
     const init1 = adInit(initOptions);
     const init2 = adInit(initOptions);
 
@@ -61,7 +61,7 @@ export default () => {
       breakpoint: "huge",
       refresh: "true"
     });
-    expect(mock.pubAds.refresh).toHaveBeenCalledTimes(1);
+    expect(init1.gpt.displayAds).toHaveBeenCalledTimes(1);
   });
 
   it("do not refresh the ads if the query doesn't match", () => {
@@ -75,7 +75,7 @@ export default () => {
     init1.init();
     init1.handleBreakpointChange("huge", { matches: false });
 
-    expect(mock.pubAds.refresh).toHaveBeenCalledTimes(0);
+    expect(init1.gpt.displayAds).toHaveBeenCalledTimes(0);
   });
 
   it("rejects if the init hook is called twice", () => {

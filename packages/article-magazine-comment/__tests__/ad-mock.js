@@ -34,6 +34,7 @@ export const adConfig = {
     timeout: 3000
   },
   bidderSlots: ["ad-header", "ad-article-inline"],
+  globalSlots: ["ad-pixel", "ad-pixelskin", "ad-pixelteads"],
   networkId: "mockNetwork",
   pageTargeting: {
     title: "Title"
