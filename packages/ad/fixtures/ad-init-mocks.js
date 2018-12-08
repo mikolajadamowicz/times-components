@@ -97,6 +97,7 @@ export const makeAdInitMocks = (withHeaderBidding = false) => {
         Object.assign({}, slotConfig),
         Object.assign({}, slotConfig)
       ],
+      bidInitialiser: Promise.resolve(),
       config: slotConfig,
       debug: true,
       disableAds: false,

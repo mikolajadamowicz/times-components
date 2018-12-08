@@ -9,9 +9,17 @@ const logger = require("../lib/simple-logger");
 
 const port = 3000;
 const server = express();
+const graphqlApiUrl = process.env.GRAPHQL_ENDPOINT;
+if (!graphqlApiUrl) {
+  throw new Error("GRAPHQL_ENDPOINT is not defined");
+}
 
 server.use(shrinkRay());
 server.use(express.static("dist"));
+server.use((err, req, res) => {
+  logger.error(err.stack);
+  res.status(500).send(err.stack);
+});
 
 const makeHtml = (
   initialState,
@@ -53,11 +61,10 @@ const toNumber = input => {
   return parsed;
 };
 
-server.get("/article/:id", (request, response) => {
+server.get("/article/:id", (request, response, next) => {
   const {
     params: { id: articleId }
   } = request;
-  const graphqlApiUrl = process.env.GRAPHQL_ENDPOINT;
   const headers = process.env.GRAPHQL_TOKEN
     ? {
         "nuk-tpatoken": process.env.GRAPHQL_TOKEN
@@ -76,16 +83,18 @@ server.get("/article/:id", (request, response) => {
           title: "Article"
         })
       )
-    );
+    ).catch(err => {
+      next(err);
+    });
 });
 
-server.get("/profile/:slug", (request, response) => {
+server.get("/profile/:slug", (request, response, next) => {
   const {
     params: { slug: authorSlug },
     query: { page }
   } = request;
   const currentPage = toNumber(page) || 1;
-  const graphqlApiUrl = process.env.GRAPHQL_ENDPOINT;
+  
 
   ssr
     .authorProfile(
@@ -102,16 +111,17 @@ server.get("/profile/:slug", (request, response) => {
           title: authorSlug
         })
       )
-    );
+    ).catch(err => {
+      next(err);
+    });
 });
 
-server.get("/topic/:slug", (request, response) => {
+server.get("/topic/:slug", (request, response, next) => {
   const {
     params: { slug: topicSlug },
     query: { page }
   } = request;
   const currentPage = toNumber(page) || 1;
-  const graphqlApiUrl = process.env.GRAPHQL_ENDPOINT;
 
   ssr
     .topic(
@@ -128,7 +138,9 @@ server.get("/topic/:slug", (request, response) => {
           title: topicSlug
         })
       )
-    );
+    ).catch(err => {
+      next(err);
+    });
 });
 
 const serviceName = "Stand-alone renderer server";
