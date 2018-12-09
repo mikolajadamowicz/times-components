@@ -1,11 +1,11 @@
 /* eslint-disable no-console */
-
 const express = require("express");
 const shrinkRay = require("shrink-ray");
 
 const ssr = require("../server");
 const makeArticleUrl = require("../lib/make-url");
 const logger = require("../lib/simple-logger");
+const { apstagConfig, prebidConfig } = require("../lib/ads/base-ad-config");
 
 const port = 3000;
 const server = express();
@@ -14,17 +14,19 @@ if (!graphqlApiUrl) {
   throw new Error("GRAPHQL_ENDPOINT is not defined");
 }
 
+const headers = { "nuk-tpatoken": process.env.GRAPHQL_TOKEN || null };
+if (!headers["nuk-tpatoken"]) {
+  // throw new Error("GRAPHQL_TOKEN is not defined");
+}
+
 server.use(shrinkRay());
 server.use(express.static("dist"));
-server.use((err, req, res) => {
-  logger.error(err.stack);
-  res.status(500).send(err.stack);
-});
+server.use("/static", express.static("static"));
 
 const makeHtml = (
   initialState,
   initialProps,
-  { bundleName, markup, responsiveStyles, styles, title }
+  { bundleName, markup, responsiveStyles, styles, title, prebid, apstag }
 ) => `
         <!DOCTYPE html>
         <html>
@@ -33,14 +35,34 @@ const makeHtml = (
             <title>${title}</title>
             ${styles}
             ${responsiveStyles}
-            <script src="https://c.amazon-adsystem.com/aax2/apstag.js"></script>
-            <script src="https://www.googletagservices.com/tag/js/gpt.js"></script>
-            <script src="https://www.thetimes.co.uk/d/js/vendor/newPrebid.min-7526ce2390.js"></script>
+            <script>
+              window.googletag = window.googletag || {};
+              window.googletag.cmd = window.googletag.cmd || [];
+              window.pbjs = window.pbjs || {};
+              window.pbjs.que = window.pbjs.que || [];
+              window.apstag = {
+                _Q: [],
+                addToQueue(action, d) {
+                  this._Q.push([action, d]);
+                },
+                fetchBids() {
+                  this.addToQueue("f", arguments);
+                },
+                init() {
+                  this.addToQueue("i", arguments);
+                },
+              };
+            </script>
           </head>
           <body style="margin:0">
-            <script>window.nuk = {graphqlapi: {url: "${
-              process.env.GRAPHQL_ENDPOINT
-            }"}, tracking: {enabled: false}};</script>
+            <script>
+              window.nuk = {
+                graphqlapi: {
+                  url: "${graphqlApiUrl}"
+                },
+                tracking: {enabled: false}
+              };
+            </script>
             ${initialProps}
             ${initialState}
             <div id="main-container">${markup}</div>
@@ -63,82 +85,105 @@ const toNumber = input => {
 
 server.get("/article/:id", (request, response, next) => {
   const {
+    originalUrl,
     params: { id: articleId }
   } = request;
-  const headers = process.env.GRAPHQL_TOKEN
-    ? {
-        "nuk-tpatoken": process.env.GRAPHQL_TOKEN
-      }
-    : null;
 
   ssr
     .article(articleId, headers, { graphqlApiUrl, logger, makeArticleUrl })
-    .then(({ initialProps, initialState, markup, responsiveStyles, styles }) =>
-      response.send(
-        makeHtml(initialState, initialProps, {
-          bundleName: "article",
-          markup,
-          responsiveStyles,
-          styles,
-          title: "Article"
-        })
-      )
-    ).catch(err => {
+    .then(
+      ({ initialProps, initialState, markup, responsiveStyles, styles }) => {
+        try {
+          const html = makeHtml(initialState, initialProps, {
+            apstag: apstagConfig,
+            bundleName: "article",
+            markup,
+            prebid: prebidConfig(originalUrl),
+            responsiveStyles,
+            styles,
+            title: "Article"
+          });
+          response.send(html);
+        } catch (err) {
+          next(err);
+        }
+      }
+    )
+    .catch(err => {
       next(err);
     });
 });
 
 server.get("/profile/:slug", (request, response, next) => {
   const {
+    originalUrl,
     params: { slug: authorSlug },
     query: { page }
   } = request;
   const currentPage = toNumber(page) || 1;
-  
 
   ssr
-    .authorProfile(
-      { authorSlug, currentPage },
-      { graphqlApiUrl, logger, makeArticleUrl }
+    .authorProfile({ authorSlug, currentPage }, {
+      graphqlApiUrl,
+      logger,
+      makeArticleUrl
+    })
+    .then(
+      ({ initialProps, initialState, markup, responsiveStyles, styles }) => {
+        try {
+          const html = makeHtml(initialState, initialProps, {
+            apstag: apstagConfig,
+            bundleName: "author-profile",
+            markup,
+            prebid: prebidConfig(originalUrl),
+            responsiveStyles,
+            styles,
+            title: authorSlug
+          });
+          response.send(html);
+        } catch (err) {
+          next(err);
+        }
+      }
     )
-    .then(({ initialProps, initialState, markup, responsiveStyles, styles }) =>
-      response.send(
-        makeHtml(initialState, initialProps, {
-          bundleName: "author-profile",
-          markup,
-          responsiveStyles,
-          styles,
-          title: authorSlug
-        })
-      )
-    ).catch(err => {
+    .catch(err => {
       next(err);
     });
 });
 
 server.get("/topic/:slug", (request, response, next) => {
   const {
+    originalUrl,
     params: { slug: topicSlug },
     query: { page }
   } = request;
   const currentPage = toNumber(page) || 1;
 
   ssr
-    .topic(
-      { currentPage, topicSlug },
-      { graphqlApiUrl, logger, makeArticleUrl }
+    .topic({ currentPage, topicSlug }, {
+      graphqlApiUrl,
+      logger,
+      makeArticleUrl
+    })
+    .then(
+      ({ initialProps, initialState, markup, responsiveStyles, styles }) => {
+        try {
+          const html = makeHtml(initialState, initialProps, {
+            apstag: apstagConfig,
+            bundleName: "topic",
+            markup,
+            prebid: prebidConfig(originalUrl),
+            responsiveStyles,
+            styles,
+            title: topicSlug
+          });
+          response.send(html);
+        } catch (err) {
+          next(err);
+        }
+      }
     )
-    .then(({ initialProps, initialState, markup, responsiveStyles, styles }) =>
-      response.send(
-        makeHtml(initialState, initialProps, {
-          bundleName: "topic",
-          markup,
-          responsiveStyles,
-          styles,
-          title: topicSlug
-        })
-      )
-    ).catch(err => {
+    .catch(err => {
       next(err);
     });
 });

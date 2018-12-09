@@ -73,7 +73,7 @@ class Ad extends Component {
 
     const data = {
       adUnit: adConfig.adUnit,
-      allSlotConfigs: this.allSlotConfigs,
+      allSlotConfigs: this.allSlotConfigs || this.slots,
       bidInitialiser: adConfig.bidInitialiser || false,
       config,
       contextUrl,
