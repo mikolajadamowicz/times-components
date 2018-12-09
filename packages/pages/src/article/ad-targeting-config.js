@@ -6,6 +6,7 @@ export default ({ adTestMode, article, sectionName }) => ({
   adUnit: Platform.OS === "ios" ? "thetimes.mob.ios" : "thetimes.mob.android",
   biddersConfig: {},
   bidderSlots: [],
+  bidInitialiser: Promise.resolve(),
   globalSlots: [],
   networkId: config.adNetworkId,
   pageTargeting: {

@@ -33,7 +33,8 @@ export const adConfig = {
     minPrice: 0.01,
     timeout: 3000
   },
-  bidderSlots: ["header", "ad-article-inline"],
+  bidderSlots: ["header", "inline-ad"],
+  bidInitialiser: Promise.resolve(),
   globalSlots: ["ad-pixel", "ad-pixelskin", "ad-pixelteads"],
   networkId: "mockNetwork",
   pageTargeting: {
