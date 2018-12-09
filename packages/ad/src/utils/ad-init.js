@@ -6,7 +6,7 @@ const adInit = args => {
   const isWeb = platform === "web";
   const { bidInitialiser } = data;
   const withoutHeaderBidding = isWeb && !bidInitialiser;
-  if (withoutHeaderBidding) {
+  if (!window.googletag || !window.pbjs || !window.apstag) {
     window.googletag = window.googletag || {};
     window.googletag.cmd = window.googletag.cmd || [];
     window.pbjs = window.pbjs || {};
@@ -72,19 +72,8 @@ const adInit = args => {
         return Promise.all([setPageTarget, setSlotTarget]);
       },
 
-      enableService() {
-        return new Promise(resolve => {
-          this.scheduleAction(() => {
-            googletag.enableServices();
-            const msg = "[Google] INFO: enable services";
-            eventCallback("warn", msg);
-            resolve(msg);
-          });
-        });
-      },
-
       gptInitialised() {
-        return this.enableService().then(() => {
+        return new Promise(resolve => {
           setTimeout(() => {
             this.scheduleAction(() => {
               if (isWeb) {
@@ -104,6 +93,7 @@ const adInit = args => {
               googletag.pubads().refresh();
               const msg = "[Google] INFO: displayed ads";
               eventCallback("warn", msg);
+              resolve(msg);
             });
           }, 100);
         });
@@ -121,9 +111,6 @@ const adInit = args => {
               Object.keys(keyValuePairs).forEach(key => {
                 pubads.setTargeting(key, keyValuePairs[key]);
               });
-              pubads.enableAsyncRendering();
-              pubads.disableInitialLoad();
-              pubads.collapseEmptyDivs(true, true);
               eventCallback("warn", "[Google] INFO: set page target");
               eventCallback("log", keyValuePairs);
               resolve(keyValuePairs);
@@ -151,15 +138,14 @@ const adInit = args => {
       },
 
       setupAsync() {
-        const setPageTarget = this.scheduleSetPageTargetingValues(
-          data.pageTargeting
-        );
-        const initGPT = new Promise((resolve, reject) => {
+        return new Promise((resolve, reject) => {
           this.scheduleAction(() => {
             try {
               const pubads = googletag.pubads();
               pubads.disableInitialLoad();
               pubads.enableSingleRequest();
+              pubads.collapseEmptyDivs(true, true);
+              googletag.enableServices();
               const msg = "[Google] INFO: setupAsync";
               eventCallback("warn", msg);
               resolve(msg);
@@ -169,7 +155,6 @@ const adInit = args => {
             }
           });
         });
-        return Promise.all([setPageTarget, initGPT]);
       }
     },
 
@@ -211,12 +196,14 @@ const adInit = args => {
 
     init() {
       if (initCalled) {
+        eventCallback("warn", "init() has already been called");
         return Promise.reject(new Error("init() has already been called"));
       }
       initCalled = true;
 
       const { disableAds } = data;
       if (disableAds) {
+        eventCallback("warn", "ads disabled");
         return this.handleError(new Error("ads disabled"));
       }
 
@@ -254,20 +241,16 @@ const adInit = args => {
         });
       }
 
-      const adSetup = this.gpt.doSlotAdSetup();
+      const parallelActions = [this.gpt.setupAsync(), this.gpt.doSlotAdSetup()];
       if (bidInitialiser) {
-        return Promise.all([bidInitialiser, adSetup]);
+        parallelActions.push(bidInitialiser);
+        return Promise.all(parallelActions);
       }
 
-      const parallelActions = [this.gpt.setupAsync(this.utils), adSetup];
-      if (!bidInitialiser) {
-        this.grapeshot.setupAsync(this.gpt, this.utils);
-        parallelActions.push(
-          this.utils.loadScript(
-            "https://www.googletagservices.com/tag/js/gpt.js"
-          )
-        );
-      }
+      this.grapeshot.setupAsync(this.gpt, this.utils);
+      parallelActions.push(
+        this.utils.loadScript("https://www.googletagservices.com/tag/js/gpt.js")
+      );
       if (withoutHeaderBidding) {
         const { prebidConfig } = data;
         parallelActions.push(this.prebid.setupAsync(prebidConfig, this.utils));
@@ -277,27 +260,24 @@ const adInit = args => {
     },
 
     initSetup() {
-      try {
-        if (window.initCalled) {
-          return Promise.resolve("initSetup() has already been called");
-        }
-        window.initCalled = true;
-
-        return this.initPageAsync()
-          .then(() => {
-            const { networkId, adUnit, prebidConfig, section, slots } = data;
-            return this.prebid.requestBidsAsync(
-              prebidConfig,
-              slots,
-              networkId,
-              adUnit,
-              section
-            );
-          })
-          .then(() => this.gpt.gptInitialised());
-      } catch (err) {
-        return this.handleError(err);
+      if (window.initCalled) {
+        eventCallback("warn", "initSetup() has already been called");
+        return Promise.resolve("initSetup() has already been called");
       }
+      window.initCalled = true;
+
+      return this.initPageAsync()
+        .then(() => {
+          const { networkId, adUnit, prebidConfig, section, slots } = data;
+          return this.prebid.requestBidsAsync(
+            prebidConfig,
+            slots,
+            networkId,
+            adUnit,
+            section
+          );
+        })
+        .then(() => this.gpt.gptInitialised());
     },
 
     prebid: {
@@ -325,6 +305,7 @@ const adInit = args => {
 
       requestBidsAsync(prebidConfig, slots, networkId, adUnit, section) {
         if (!isWeb) {
+          eventCallback("warn", "no prebid on native platform");
           return Promise.resolve("no prebid on native platform");
         }
 

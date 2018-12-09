@@ -5,7 +5,6 @@ const shrinkRay = require("shrink-ray");
 const ssr = require("../server");
 const makeArticleUrl = require("../lib/make-url");
 const logger = require("../lib/simple-logger");
-const { apstagConfig, prebidConfig } = require("../lib/ads/base-ad-config");
 
 const port = 3000;
 const server = express();
@@ -15,9 +14,6 @@ if (!graphqlApiUrl) {
 }
 
 const headers = { "nuk-tpatoken": process.env.GRAPHQL_TOKEN || null };
-if (!headers["nuk-tpatoken"]) {
-  // throw new Error("GRAPHQL_TOKEN is not defined");
-}
 
 server.use(shrinkRay());
 server.use(express.static("dist"));
@@ -26,7 +22,7 @@ server.use("/static", express.static("static"));
 const makeHtml = (
   initialState,
   initialProps,
-  { bundleName, markup, responsiveStyles, styles, title, prebid, apstag }
+  { bundleName, markup, responsiveStyles, styles, title }
 ) => `
         <!DOCTYPE html>
         <html>
@@ -85,7 +81,6 @@ const toNumber = input => {
 
 server.get("/article/:id", (request, response, next) => {
   const {
-    originalUrl,
     params: { id: articleId }
   } = request;
 
@@ -95,10 +90,8 @@ server.get("/article/:id", (request, response, next) => {
       ({ initialProps, initialState, markup, responsiveStyles, styles }) => {
         try {
           const html = makeHtml(initialState, initialProps, {
-            apstag: apstagConfig,
             bundleName: "article",
             markup,
-            prebid: prebidConfig(originalUrl),
             responsiveStyles,
             styles,
             title: "Article"
@@ -116,26 +109,26 @@ server.get("/article/:id", (request, response, next) => {
 
 server.get("/profile/:slug", (request, response, next) => {
   const {
-    originalUrl,
     params: { slug: authorSlug },
     query: { page }
   } = request;
   const currentPage = toNumber(page) || 1;
 
   ssr
-    .authorProfile({ authorSlug, currentPage }, {
-      graphqlApiUrl,
-      logger,
-      makeArticleUrl
-    })
+    .authorProfile(
+      { authorSlug, currentPage },
+      {
+        graphqlApiUrl,
+        logger,
+        makeArticleUrl
+      }
+    )
     .then(
       ({ initialProps, initialState, markup, responsiveStyles, styles }) => {
         try {
           const html = makeHtml(initialState, initialProps, {
-            apstag: apstagConfig,
             bundleName: "author-profile",
             markup,
-            prebid: prebidConfig(originalUrl),
             responsiveStyles,
             styles,
             title: authorSlug
@@ -153,26 +146,26 @@ server.get("/profile/:slug", (request, response, next) => {
 
 server.get("/topic/:slug", (request, response, next) => {
   const {
-    originalUrl,
     params: { slug: topicSlug },
     query: { page }
   } = request;
   const currentPage = toNumber(page) || 1;
 
   ssr
-    .topic({ currentPage, topicSlug }, {
-      graphqlApiUrl,
-      logger,
-      makeArticleUrl
-    })
+    .topic(
+      { currentPage, topicSlug },
+      {
+        graphqlApiUrl,
+        logger,
+        makeArticleUrl
+      }
+    )
     .then(
       ({ initialProps, initialState, markup, responsiveStyles, styles }) => {
         try {
           const html = makeHtml(initialState, initialProps, {
-            apstag: apstagConfig,
             bundleName: "topic",
             markup,
-            prebid: prebidConfig(originalUrl),
             responsiveStyles,
             styles,
             title: topicSlug

@@ -41,6 +41,9 @@ export const makeAdInitMocks = (withHeaderBidding = false) => {
   };
   const pbjs = {
     addAdUnits: jest.fn(),
+    collapseEmptyDivs: jest.fn(),
+    disableInitialLoad: jest.fn(),
+    enableSingleRequest: jest.fn(),
     que: [],
     removeAdUnit: jest.fn(),
     requestBids: jest.fn(),
