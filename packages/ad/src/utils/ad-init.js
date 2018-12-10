@@ -337,7 +337,9 @@ const adInit = args => {
               this.setupApstag(amazonAccountID, prebidConfig.timeout)
             );
           }
-          this.scheduleRequestAmazonBids(slots, networkId, adUnit, section);
+          biddingActions.push(
+            this.scheduleRequestAmazonBids(slots, networkId, adUnit, section)
+          );
         }
 
         return Promise.all(biddingActions);
