@@ -31,20 +31,6 @@ export default () => {
     expect(init2.initPageAsync).toHaveBeenCalledTimes(0);
   });
 
-  xit("performs slot-level setup for every slot", () => {
-    const init1 = adInit(initOptions);
-    const init2 = adInit(initOptions);
-
-    jest.spyOn(init1.gpt, "doSlotAdSetup").mockReturnValue(Promise.resolve());
-    jest.spyOn(init2.gpt, "doSlotAdSetup").mockReturnValue(Promise.resolve());
-
-    init1.init();
-    init2.init();
-
-    expect(init1.gpt.doSlotAdSetup).toHaveBeenCalledTimes(1);
-    expect(init2.gpt.doSlotAdSetup).toHaveBeenCalledTimes(1);
-  });
-
   it("refresh the ads on a new breakpoint", () => {
     const init1 = adInit(initOptions);
 

@@ -1,4 +1,5 @@
 /* eslint-disable no-console */
+
 const express = require("express");
 const shrinkRay = require("shrink-ray");
 
@@ -8,16 +9,9 @@ const logger = require("../lib/simple-logger");
 
 const port = 3000;
 const server = express();
-const graphqlApiUrl = process.env.GRAPHQL_ENDPOINT;
-if (!graphqlApiUrl) {
-  throw new Error("GRAPHQL_ENDPOINT is not defined");
-}
-
-const headers = { "nuk-tpatoken": process.env.GRAPHQL_TOKEN || null };
 
 server.use(shrinkRay());
 server.use(express.static("dist"));
-server.use("/static", express.static("static"));
 
 const makeHtml = (
   initialState,
@@ -31,34 +25,11 @@ const makeHtml = (
             <title>${title}</title>
             ${styles}
             ${responsiveStyles}
-            <script>
-              window.googletag = window.googletag || {};
-              window.googletag.cmd = window.googletag.cmd || [];
-              window.pbjs = window.pbjs || {};
-              window.pbjs.que = window.pbjs.que || [];
-              window.apstag = {
-                _Q: [],
-                addToQueue(action, d) {
-                  this._Q.push([action, d]);
-                },
-                fetchBids() {
-                  this.addToQueue("f", arguments);
-                },
-                init() {
-                  this.addToQueue("i", arguments);
-                },
-              };
-            </script>
           </head>
           <body style="margin:0">
-            <script>
-              window.nuk = {
-                graphqlapi: {
-                  url: "${graphqlApiUrl}"
-                },
-                tracking: {enabled: false}
-              };
-            </script>
+            <script>window.nuk = {graphqlapi: {url: "${
+              process.env.GRAPHQL_ENDPOINT
+            }"}, tracking: {enabled: false}};</script>
             ${initialProps}
             ${initialState}
             <div id="main-container">${markup}</div>
@@ -79,106 +50,82 @@ const toNumber = input => {
   return parsed;
 };
 
-server.get("/article/:id", (request, response, next) => {
+server.get("/article/:id", (request, response) => {
   const {
     params: { id: articleId }
   } = request;
+  const graphqlApiUrl = process.env.GRAPHQL_ENDPOINT;
+  const headers = process.env.GRAPHQL_TOKEN
+    ? {
+        "nuk-tpatoken": process.env.GRAPHQL_TOKEN
+      }
+    : null;
 
   ssr
     .article(articleId, headers, { graphqlApiUrl, logger, makeArticleUrl })
-    .then(
-      ({ initialProps, initialState, markup, responsiveStyles, styles }) => {
-        try {
-          const html = makeHtml(initialState, initialProps, {
-            bundleName: "article",
-            markup,
-            responsiveStyles,
-            styles,
-            title: "Article"
-          });
-          response.send(html);
-        } catch (err) {
-          next(err);
-        }
-      }
-    )
-    .catch(err => {
-      next(err);
-    });
+    .then(({ initialProps, initialState, markup, responsiveStyles, styles }) =>
+      response.send(
+        makeHtml(initialState, initialProps, {
+          bundleName: "article",
+          markup,
+          responsiveStyles,
+          styles,
+          title: "Article"
+        })
+      )
+    );
 });
 
-server.get("/profile/:slug", (request, response, next) => {
+server.get("/profile/:slug", (request, response) => {
   const {
     params: { slug: authorSlug },
     query: { page }
   } = request;
   const currentPage = toNumber(page) || 1;
+  const graphqlApiUrl = process.env.GRAPHQL_ENDPOINT;
 
   ssr
     .authorProfile(
       { authorSlug, currentPage },
-      {
-        graphqlApiUrl,
-        logger,
-        makeArticleUrl
-      }
+      { graphqlApiUrl, logger, makeArticleUrl }
     )
-    .then(
-      ({ initialProps, initialState, markup, responsiveStyles, styles }) => {
-        try {
-          const html = makeHtml(initialState, initialProps, {
-            bundleName: "author-profile",
-            markup,
-            responsiveStyles,
-            styles,
-            title: authorSlug
-          });
-          response.send(html);
-        } catch (err) {
-          next(err);
-        }
-      }
-    )
-    .catch(err => {
-      next(err);
-    });
+    .then(({ initialProps, initialState, markup, responsiveStyles, styles }) =>
+      response.send(
+        makeHtml(initialState, initialProps, {
+          bundleName: "author-profile",
+          markup,
+          responsiveStyles,
+          styles,
+          title: authorSlug
+        })
+      )
+    );
 });
 
-server.get("/topic/:slug", (request, response, next) => {
+server.get("/topic/:slug", (request, response) => {
   const {
     params: { slug: topicSlug },
     query: { page }
   } = request;
   const currentPage = toNumber(page) || 1;
+  const graphqlApiUrl = process.env.GRAPHQL_ENDPOINT;
 
   ssr
     .topic(
       { currentPage, topicSlug },
-      {
-        graphqlApiUrl,
-        logger,
-        makeArticleUrl
-      }
+      { graphqlApiUrl, logger, makeArticleUrl }
     )
-    .then(
-      ({ initialProps, initialState, markup, responsiveStyles, styles }) => {
-        try {
-          const html = makeHtml(initialState, initialProps, {
-            bundleName: "topic",
-            markup,
-            responsiveStyles,
-            styles,
-            title: topicSlug
-          });
-          response.send(html);
-        } catch (err) {
-          next(err);
-        }
-      }
-    )
-    .catch(err => {
-      next(err);
-    });
+    .then(({ initialProps, initialState, markup, responsiveStyles, styles }) =>
+      response.send(
+        makeHtml(initialState, initialProps, {
+          bundleName: "topic",
+          markup,
+          responsiveStyles,
+          styles,
+          title: topicSlug
+        })
+      )
+    );
 });
 
 const serviceName = "Stand-alone renderer server";
