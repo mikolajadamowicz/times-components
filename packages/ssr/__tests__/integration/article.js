@@ -32,7 +32,6 @@ describe("Article", () => {
       }));
 
   it("loaded all the required article ads", () => {
-    cy.loadedAd("#inline-ad");
     cy.loadedAd("#header");
   });
 });
