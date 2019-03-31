@@ -1,7 +1,7 @@
 /* eslint-disable consistent-return */
 
 import React, { Component } from "react";
-import { View, FlatList } from "react-native";
+import { View, FlatList, ScrollView, Text } from "react-native";
 import PropTypes from "prop-types";
 import ArticleComments from "@times-components/article-comments";
 import { AdComposer } from "@times-components/ad";
@@ -9,7 +9,7 @@ import RelatedArticles from "@times-components/related-articles";
 import Responsive, { ResponsiveContext } from "@times-components/responsive";
 import { withTrackScrollDepth } from "@times-components/tracking";
 import { screenWidth } from "@times-components/utils";
-import ArticleRow from "./article-body/article-body-row";
+import ArticleRow, { ArticleRowFlow } from "./article-body/article-body-row";
 import ArticleTopics from "./article-topics";
 import {
   articleSkeletonPropTypes,
@@ -20,6 +20,7 @@ import articleTrackingContext from "./article-tracking-context";
 import insertDropcapIntoAST from "./dropcap-util";
 import styles from "./styles/shared";
 import Gutter, { maxWidth } from "./gutter";
+import { Layout, Text as FText } from "@times-components/text-flow";
 
 const listViewPageSize = 1;
 const listViewSize = 10;
@@ -166,8 +167,65 @@ class ArticleSkeleton extends Component {
       name: item.type
     }));
 
+    const rows = articleData
+      .filter(row => row.type === "articleBodyRow")
+      .map(({ data }) => data);
+
+    const textFlow = new Layout.TextFlow({
+      width: 660,
+      children: rows.map(rowData => {
+        return (
+          ArticleRowFlow({
+            content: rowData,
+            interactiveConfig,
+            onLinkPress,
+            onTwitterLinkPress,
+            onVideoPress
+          })
+        );
+      })
+    })
+
     receiveChildList(articleData);
 
+    return (
+      <AdComposer adConfig={adConfig}>
+        <Responsive>
+          <View style={styles.articleContainer}>
+            <ScrollView>
+              <Gutter>
+                <Header width={Math.min(maxWidth, width)} />
+              </Gutter>
+              {
+                textFlow.block.children.map(block => {
+                  if (block instanceof Layout.InlineBlock || block instanceof Layout.Block) {
+                    return block.getComponent()
+                  }
+                  if (block instanceof FText.Text) {
+                    return <Gutter>{block.getComponent(style => <View style={{ height: block.measuredHeight }}>
+                      {
+                        block.block.children.map(line =>
+                          line.idealSpans.map(span => (
+                            <Text
+                              style={{
+                                ...style,
+                                position: 'absolute',
+                                top: span.y - block.y,
+                                left: span.x
+                              }}
+                            >
+                              {span.text}
+                            </Text>))
+                        )
+                      }
+                    </View>
+                    )}</Gutter>
+                  }
+                })
+              }
+            </ScrollView></View></Responsive></AdComposer>
+    )
+    /*
     return (
       <AdComposer adConfig={adConfig}>
         <Responsive>
@@ -214,6 +272,7 @@ class ArticleSkeleton extends Component {
         </Responsive>
       </AdComposer>
     );
+    */
   }
 }
 
