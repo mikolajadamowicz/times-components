@@ -180,7 +180,8 @@ class ArticleSkeleton extends Component {
             interactiveConfig,
             onLinkPress,
             onTwitterLinkPress,
-            onVideoPress
+            onVideoPress,
+            width: Math.min(maxWidth, width)
           })
         );
       })
@@ -196,9 +197,21 @@ class ArticleSkeleton extends Component {
               <Gutter>
                 <Header width={Math.min(maxWidth, width)} />
               </Gutter>
+              <View>
               {
                 textFlow.block.children.map(block => {
-                  if (block instanceof Layout.InlineBlock || block instanceof Layout.Block) {
+                  if (block instanceof Layout.InlineBlock) {
+                    return (<View style={{
+                      position: 'absolute',
+                      top: block.y,
+                      left: block.x,
+                      width: Math.min(maxWidth, width) * 0.35,
+                      zIndex: 1
+                    }}>
+                      {block.getComponent()}
+                    </View>)
+                  }
+                  if (block instanceof Layout.Block) {
                     return block.getComponent()
                   }
                   if (block instanceof FText.Text) {
@@ -226,6 +239,7 @@ class ArticleSkeleton extends Component {
                   }
                 })
               }
+              </View>
             </ScrollView></View></Responsive></AdComposer>
     )
     /*
