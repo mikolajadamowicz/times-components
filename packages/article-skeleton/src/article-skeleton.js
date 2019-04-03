@@ -306,16 +306,11 @@ class ArticleSkeleton extends Component {
               <Gutter>
                 {renderRow(
                   item,
-                  onAuthorPress,
                   onCommentsPress,
                   onCommentGuidelinesPress,
-                  onLinkPress,
                   onRelatedArticlePress,
                   onTopicPress,
-                  onTwitterLinkPress,
-                  onVideoPress,
                   analyticsStream,
-                  interactiveConfig
                 )}
               </Gutter>
             )}
