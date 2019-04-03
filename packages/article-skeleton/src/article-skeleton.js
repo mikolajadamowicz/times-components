@@ -300,6 +300,7 @@ class ArticleSkeleton extends Component {
                           block.block.children.map(line =>
                             line.idealSpans.map(span => (
                               <Text
+                                selectable
                                 style={{
                                   ...style,
                                   fontFamily: span.style.font,
