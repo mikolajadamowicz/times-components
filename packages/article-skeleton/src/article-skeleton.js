@@ -241,8 +241,20 @@ class ArticleSkeleton extends Component {
     return block.getComponent(style => <View style={{ height: block.measuredHeight }}>
       {
         block.block.children.map(line =>
-          line.idealSpans.map(span => (
-            <Text
+          line.idealSpans.map(span => {
+            if (span.href) {
+              return (<Text
+                selectable
+                style={{
+                  position: 'absolute',
+                  top: span.y,
+                  left: span.x
+                }}
+              >
+                {span.href()}
+              </Text>)
+            }
+            return (<Text
               selectable
               style={{
                 ...style,
@@ -255,7 +267,8 @@ class ArticleSkeleton extends Component {
               }}
             >
               {span.text}
-            </Text>))
+            </Text>)
+          })
         )
       }
     </View>
@@ -268,15 +281,11 @@ class ArticleSkeleton extends Component {
       analyticsStream,
       Header,
       interactiveConfig,
-      onAuthorPress,
       onCommentGuidelinesPress,
       onCommentsPress,
-      onLinkPress,
       onRelatedArticlePress,
       onTopicPress,
-      onTwitterLinkPress,
-      onViewed,
-      onVideoPress
+      onViewed
     } = this.props;
     const { width } = this.state;
     if (!this.state.content) {
