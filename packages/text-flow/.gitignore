@@ -1,0 +1,4 @@
+node_modules
+dist
+src/Text/fonts/*
+!src/Text/Fonts/index.js

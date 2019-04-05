@@ -1,0 +1,23 @@
+DO NOT STEAL FONTS.
+DO NOT EXPORT FONTS WITHOUT A PROPER LICENSE.
+
+
+1. Install Python, fontforge, and install BeautifulSoup4
+
+   $ pip install beautifulsoup4
+
+2. Create the following Directories: font, source_fonts, svg, svgff, web_fonts
+
+3. Place TTF or OTF fonts in "source_fonts" directory
+
+4. Run:
+
+    $ fontforge -script convert.pe source_fonts/*.ttf
+    $ fontforge -script convert.pe source_fonts/*.otf
+
+5. COPY .SVG Files from source_fonts to "svgff" directory
+
+6. Run: 
+    python main.py
+
+7. exported fonts are in the 'fonts' directory
