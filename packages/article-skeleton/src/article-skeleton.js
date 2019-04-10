@@ -249,7 +249,7 @@ class ArticleSkeleton extends Component {
               >
                 {block.getComponent()}
               </View>
-              {block.children.map(subBlock => this.renderText(subBlock))}
+              {block.children.map(subBlock => this.renderText(subBlock, true))}
             </View>
           );
         }}
@@ -261,7 +261,24 @@ class ArticleSkeleton extends Component {
     return block.getComponent()
   }
 
-  renderText(block) {
+  renderText(block, inlined = false) {
+    if (!inlined) {
+      return block.getComponent(style => <View>
+        <Text style={style}>{block.idealSpans.map((span, i, array) => {
+          return <Text
+            selectable
+            style={span.style.font && {
+              fontFamily: span.style.font,
+              fontWeight: span.style.font.includes('Bold') ? 'bold' : null,
+              fontStyle: span.style.font.includes('Italic') ? 'italic' : null,
+              lineHeight: 30
+            }}
+          >
+            {span.text}
+          </Text>
+        })}</Text>
+      </View>)
+    }
     return block.getComponent(style => <View style={{ height: block.measuredHeight }}>
       {
         block.block.children.map(line =>
